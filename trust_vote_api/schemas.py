@@ -1,3 +1,4 @@
+import uuid
 from typing import Optional
 
 from pydantic import BaseModel
@@ -17,7 +18,7 @@ class UserElectionSchema(BaseModel):
 
 
 class UserSchema(BaseModel):
-    id: Optional[int] = None
+    id: Optional[uuid.UUID] = None
     name: str
     email: str
     password: str

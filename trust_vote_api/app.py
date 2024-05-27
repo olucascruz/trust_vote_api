@@ -125,20 +125,23 @@ async def get_blocks_by_blockchain_id(blockchain_id, error_message='Erro'):
                 status_code=500, detail=f'{error_message}: {e}'
             )
 
-@app.post('/login', status_code=HTTPStatus.OK)
-async def login(user_credential):
-    users = await get_users()
 
+@app.post('/login', status_code=HTTPStatus.OK)
+async def login(user_credential: dict):
+    print(user_credential)
+    response = await get_users()
+    block_users = response['response_body']
+    users = await get_block_content(UserSchema, block_users)
     for _user in users:
+        print(_user)
         if _user.email == user_credential.email:
             if _user.password == user_credential.password:
                 return {
-                'status_code': HTTPStatus.OK,
-                'response_body': {_user.id, _user.name},
+                    'status_code': HTTPStatus.OK,
+                    'response_body': {_user.id, _user.name},
                 }
-    return HTTPException(
-                status_code=404, detail=f'{"Erro credenciais"}'
-            )
+    return HTTPException(status_code=404, detail=f'{"Erro credenciais"}')
+
 
 # About users
 @app.post('/user', status_code=HTTPStatus.CREATED)
@@ -203,7 +206,7 @@ async def create_vote(vote: VoteSchema):
 @app.get('/vote/', status_code=HTTPStatus.OK)
 async def get_vote():
     response = await get_blocks_by_blockchain_id(
-        blockchains.get('votes'), 'Erro ao buscar votes'
+        blockchains.get('votes'), 'Erro ao buscar votos'
     )
 
     return response
@@ -224,7 +227,7 @@ async def get_elections():
 async def create_election(election: ElectionSchema):
     new_election = election.model_dump_json()
     return await add_block_content(
-        blockchains.get('votes'),
+        blockchains.get('elections'),
         new_election,
         error_message='Erro ao criar eleição',
     )
@@ -263,14 +266,12 @@ async def get_canditate():
 
     return HTTPException(status_code=404, detail='Usuário não encontrado')
 
-    return response
-
 
 @app.post('/candidate/', status_code=HTTPStatus.CREATED)
 async def create_candidate(candidate: CandidateSchema):
     new_candidate = candidate.model_dump_json()
     return await add_block_content(
-        blockchains.get('votes'),
+        blockchains.get('candidates'),
         new_candidate,
         error_message='Erro ao criar voto',
     )
