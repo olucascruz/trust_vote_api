@@ -125,6 +125,20 @@ async def get_blocks_by_blockchain_id(blockchain_id, error_message='Erro'):
                 status_code=500, detail=f'{error_message}: {e}'
             )
 
+@app.post('/login', status_code=HTTPStatus.OK)
+async def login(user_credential):
+    users = await get_users()
+
+    for _user in users:
+        if _user.email == user_credential.email:
+            if _user.password == user_credential.password:
+                return {
+                'status_code': HTTPStatus.OK,
+                'response_body': {_user.id, _user.name},
+                }
+    return HTTPException(
+                status_code=404, detail=f'{"Erro credenciais"}'
+            )
 
 # About users
 @app.post('/user', status_code=HTTPStatus.CREATED)
