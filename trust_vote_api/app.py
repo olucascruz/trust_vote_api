@@ -4,7 +4,7 @@ from datetime import datetime
 from http import HTTPStatus
 
 import httpx
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 
 from trust_vote_api.schemas import (
@@ -64,17 +64,29 @@ async def create_blockchains():
             )
 
 
+@app.get('/blockchain/', status_code=HTTPStatus.OK)
+async def load_blockchains():
+    endpoint = '/blockchain/block/persistence/load'
+
+    async with httpx.AsyncClient() as client:
+        try:
+            response: Response = await client.get(f'{url_base}{endpoint}')
+            return response
+        except httpx.RequestError as e:
+            raise HTTPException(
+                status_code=500, detail=f'Erro ao carregar blokcchains: {e}'
+            )
+
+
 async def add_block_content(id_blockchain, new_data, error_message='Erro'):
+    endpoint = '/blockchain/block'
     data = {'blockchainID': id_blockchain, 'blockData': new_data}
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.post(
-                f'{url_base}/blockchain/block', json=data
+            response: Response = await client.post(
+                f'{url_base}{endpoint}', json=data
             )
-            return {
-                'status_code': response.status_code,
-                'response_body': response.json(),
-            }
+            return response
         except httpx.RequestError as e:
             raise HTTPException(
                 status_code=500, detail=f'{error_message}: {e}'
@@ -109,17 +121,17 @@ async def get_block_content(Schema, response_body_blocks) -> list:
         return block_content
 
 
-async def get_blocks_by_blockchain_id(blockchain_id, error_message='Erro'):
+async def get_blocks_by_blockchain_id(
+    blockchain_id: int, error_message: str = 'Erro'
+) -> Response:
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.get(
+            response: Response = await client.get(
                 f'{url_base}/blockchain/blocks?blockchainId={blockchain_id}'
             )
-            print(response)
-            return {
-                'status_code': response.status_code,
-                'response_body': response.json(),
-            }
+
+            return response
+
         except httpx.RequestError as e:
             raise HTTPException(
                 status_code=500, detail=f'{error_message}: {e}'
@@ -130,16 +142,17 @@ async def get_blocks_by_blockchain_id(blockchain_id, error_message='Erro'):
 async def login(user_credential: dict):
     print(user_credential)
     response = await get_users()
-    block_users = response['response_body']
+    block_users = json.loads(response.body.decode())
     users = await get_block_content(UserSchema, block_users)
     for _user in users:
         print(_user)
         if _user.email == user_credential.email:
             if _user.password == user_credential.password:
-                return {
-                    'status_code': HTTPStatus.OK,
-                    'response_body': {_user.id, _user.name},
-                }
+                return Response(
+                    content={_user.id, _user.name},
+                    status_code=response.status_code,
+                    media_type='application/json',
+                )
     return HTTPException(status_code=404, detail=f'{"Erro credenciais"}')
 
 
@@ -170,7 +183,7 @@ def delete_user():
 
 
 @app.get('/users/', status_code=HTTPStatus.OK)
-async def get_users():
+async def get_users() -> Response:
     response = await get_blocks_by_blockchain_id(
         blockchains.get('users'), 'Error ao buscar usuários'
     )
@@ -178,18 +191,19 @@ async def get_users():
 
 
 @app.get('/user', status_code=HTTPStatus.OK)
-async def get_user(id: int):
-    response = await get_users()
-    blocks_users = response['response_body']
+async def get_user(id: uuid.UUID):
+    response: Response = await get_users()
+    blocks_users = json.loads(response.content.decode())
 
-    users = await get_block_content(UserSchema, blocks_users)
+    users: list[UserSchema] = await get_block_content(UserSchema, blocks_users)
 
     for user in users:
         if id == user.id:
-            return {
-                'status_code': response['status_code'],
-                'response_body': user,
-            }
+            return Response(
+                content=user.model_dump_json(),
+                status_code=response.status_code,
+                media_type='application/json',
+            )
 
     return HTTPException(status_code=404, detail='Usuário não encontrado')
 
@@ -205,7 +219,7 @@ async def create_vote(vote: VoteSchema):
 
 @app.get('/vote/', status_code=HTTPStatus.OK)
 async def get_vote():
-    response = await get_blocks_by_blockchain_id(
+    response: Response = await get_blocks_by_blockchain_id(
         blockchains.get('votes'), 'Erro ao buscar votos'
     )
 
@@ -216,11 +230,48 @@ async def get_vote():
 
 
 @app.get('/election/', status_code=HTTPStatus.OK)
-async def get_elections():
-    response = await get_blocks_by_blockchain_id(
+async def get_elections(id: int = None):
+    response: Response = await get_blocks_by_blockchain_id(
         blockchains.get('elections'), 'Erro ao buscar eleições'
     )
-    return response
+
+    blocks_elections = json.loads(response.content.decode())
+    elections: list[ElectionSchema] = await get_block_content(
+        ElectionSchema, blocks_elections
+    )
+
+    if id is None:
+        return Response(
+            status_code=HTTPStatus.OK,
+            content=str(elections),
+            media_type='application/json',
+        )
+    for election in elections:
+        if election.id == id:
+            return Response(
+                status_code=HTTPStatus.OK,
+                content=election.model_dump_json(),
+                media_type='application/json',
+            )
+    raise HTTPException(
+        status_code=HTTPStatus.NOT_FOUND, detail='Eleição não encontrada'
+    )
+
+
+@app.get('/election/', status_code=HTTPStatus.OK)
+async def get_all_elections():
+    response: Response = await get_blocks_by_blockchain_id(
+        blockchains.get('elections'), 'Erro ao buscar eleições'
+    )
+
+    blocks_elections = json.loads(response.content.decode())
+    elections = await get_block_content(ElectionSchema, blocks_elections)
+
+    return Response(
+        status_code=HTTPStatus.OK,
+        content=elections,
+        media_type='application/json',
+    )
 
 
 @app.post('/election/', status_code=HTTPStatus.CREATED)
@@ -236,6 +287,11 @@ async def create_election(election: ElectionSchema):
 @app.put('/election/', status_code=HTTPStatus.CREATED)
 def update_election():
     pass
+
+
+@app.post('/election/add_user')
+async def add_user_to_election(election_id: int, user_id: int):
+    add_block_content()
 
 
 # About candidates
