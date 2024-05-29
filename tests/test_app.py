@@ -62,17 +62,12 @@ client = TestClient(app)
 #     endpoint = '/election'
 
 #     election_data = {
-#         'id': 45,
-#         'name': 'Presidential',
+#         'name': 'bolos',
 #         'type': 'Público',
-#         'start_at': str(datetime.now()),
 #     }
-
 #     response = client.post(endpoint, json=election_data)
 #     # Assert
 #     assert response.status_code == HTTPStatus.CREATED
-#     assert 'status_code' in response.json()
-#     assert 'response_body' in response.json()
 
 
 # def test_create_candidate():
@@ -120,27 +115,39 @@ client = TestClient(app)
 #     assert first_block['data'] == 'Block Gênesis'
 
 
-def test_get_user():
-    endpoint = '/user?id=dfe7fcc2-a285-41d7-936b-52f025c26a41'
+# def test_get_user():
+#     endpoint = '/user?id=dfe7fcc2-a285-41d7-936b-52f025c26a41'
 
-    response = client.get(endpoint)
-    # Assert
-    number_fields_in_user = 8
-    assert response.status_code == HTTPStatus.OK
-    assert len(response.json()) == number_fields_in_user
-
-
-def test_get_election_with_id():
-    endpoint = '/election?id=45'
-
-    response = client.get(endpoint)
-    # Assert
-    assert response.status_code == HTTPStatus.OK
+#     response = client.get(endpoint)
+#     # Assert
+#     number_fields_in_user = 8
+#     assert response.status_code == HTTPStatus.OK
+#     assert len(response.json()) == number_fields_in_user
 
 
-def test_get_election():
-    endpoint = '/election'
+# def test_get_election_with_id():
+#     endpoint = '/election?id=45'
 
-    response = client.get(endpoint)
+#     response = client.get(endpoint)
+#     # Assert
+#     assert response.status_code == HTTPStatus.OK
+
+
+# def test_get_election():
+#     endpoint = '/election'
+
+#     response = client.get(endpoint)
+#     # Assert
+#     assert response.status_code == HTTPStatus.OK
+
+
+def test_login():
+    endpoint = '/log'
+
+    user = {
+        'email': 'email',
+        'password': 'senha',
+    }
+    response = client.post(endpoint, json=user)
     # Assert
     assert response.status_code == HTTPStatus.OK

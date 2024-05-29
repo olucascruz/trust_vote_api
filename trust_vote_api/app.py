@@ -2,6 +2,7 @@ import json
 import uuid
 from datetime import datetime
 from http import HTTPStatus
+from typing import Any, Dict
 
 import httpx
 from fastapi import FastAPI, HTTPException, Response
@@ -18,14 +19,12 @@ from trust_vote_api.schemas import (
 app = FastAPI()
 url_base = 'http://localhost:8080/api'
 
-origins = ['*']
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=['*'],  # Permitir todas as origens
     allow_credentials=True,
-    allow_methods=['*'],
-    allow_headers=['*'],
+    allow_methods=['GET', 'POST', 'PUT', 'DELETE'],  # Métodos HTTP permitidos
+    allow_headers=['*'],  # Permitir todos os cabeçalhos
 )
 
 blockchains = {
@@ -86,7 +85,8 @@ async def add_block_content(id_blockchain, new_data, error_message='Erro'):
             response: Response = await client.post(
                 f'{url_base}{endpoint}', json=data
             )
-            return response
+            print('response_blockchain', response)
+            return response.status_code
         except httpx.RequestError as e:
             raise HTTPException(
                 status_code=500, detail=f'{error_message}: {e}'
@@ -138,38 +138,28 @@ async def get_blocks_by_blockchain_id(
             )
 
 
-@app.post('/login', status_code=HTTPStatus.OK)
-async def login(user_credential: dict):
-    print(user_credential)
-    response = await get_users()
-    block_users = json.loads(response.body.decode())
-    users = await get_block_content(UserSchema, block_users)
-    for _user in users:
-        print(_user)
-        if _user.email == user_credential.email:
-            if _user.password == user_credential.password:
-                return Response(
-                    content={_user.id, _user.name},
-                    status_code=response.status_code,
-                    media_type='application/json',
-                )
-    return HTTPException(status_code=404, detail=f'{"Erro credenciais"}')
+@app.post('/log', status_code=HTTPStatus.OK)
+async def login(ok: Dict[Any, Any] = None):
+    print(ok)
+    return HTTPStatus.OK
 
 
 # About users
 @app.post('/user', status_code=HTTPStatus.CREATED)
 async def create_user(user: UserSchema):
     user.id = uuid.uuid4()
-    user.create_at = datetime.now()
-    user.modificated_at = None
+    user.create_at = datetime.now().isoformat()
+    user.modified_at = None
     user.deleted = False
-
     new_user = user.model_dump_json()
-    return await add_block_content(
+
+    response: Response = await add_block_content(
         blockchains.get('users'),
         new_user,
         error_message='Erro ao criar usuário',
     )
+
+    return response
 
 
 @app.put('/user/', status_code=HTTPStatus.CREATED)

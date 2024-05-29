@@ -5,10 +5,10 @@ from pydantic import BaseModel
 
 
 class ElectionSchema(BaseModel):
-    id: Optional[int]
+    id: Optional[uuid.UUID] = None
     name: str
     type: str
-    start_at: str
+    start_at: Optional[str] = None
     end_at: Optional[str] = None
 
 
@@ -24,7 +24,7 @@ class UserSchema(BaseModel):
     password: str
     phone: str
     create_at: Optional[str] = None
-    modificated_at: Optional[str] = None
+    modified_at: Optional[str] = None
     deleted: Optional[bool] = None
 
 
