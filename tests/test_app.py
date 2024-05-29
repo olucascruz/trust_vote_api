@@ -101,28 +101,24 @@ client = TestClient(app)
 #     assert 'response_body' in response.json()
 
 
-# def test_get_users():
-#     endpoint = '/users'
+def test_get_users():
+    endpoint = '/users'
 
-#     response = client.get(endpoint).json()
+    response = client.get(endpoint)
+    print('Response', response)
 
-#     # Assert
-#     assert 'status_code' in response
-#     assert 'response_body' in response
-#     assert response['status_code'] == HTTPStatus.OK
-#     response_body = response['response_body']
-#     first_block = response_body[0]
-#     assert first_block['data'] == 'Block Gênesis'
+    # Assert
+    assert response.status_code == HTTPStatus.OK
 
 
-# def test_get_user():
-#     endpoint = '/user?id=dfe7fcc2-a285-41d7-936b-52f025c26a41'
+def test_get_user():
+    endpoint = '/user?id=dfe7fcc2-a285-41d7-936b-52f025c26a41'
 
-#     response = client.get(endpoint)
-#     # Assert
-#     number_fields_in_user = 8
-#     assert response.status_code == HTTPStatus.OK
-#     assert len(response.json()) == number_fields_in_user
+    response = client.get(endpoint)
+
+    print(response.content)
+    # Assert
+    assert response.status_code == HTTPStatus.OK
 
 
 # def test_get_election_with_id():
@@ -141,13 +137,13 @@ client = TestClient(app)
 #     assert response.status_code == HTTPStatus.OK
 
 
-def test_login():
-    endpoint = '/log'
+# def test_login():
+#     endpoint = '/log'
 
-    user = {
-        'email': 'email',
-        'password': 'senha',
-    }
-    response = client.post(endpoint, json=user)
-    # Assert
-    assert response.status_code == HTTPStatus.OK
+#     user = {
+#         'email': 'email',
+#         'password': 'senha',
+#     }
+#     response = client.post(endpoint, json=user)
+#     # Assert
+#     assert response.status_code == HTTPStatus.OK

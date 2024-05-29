@@ -96,7 +96,6 @@ async def add_block_content(id_blockchain, new_data, error_message='Erro'):
 async def get_block_content(Schema, response_body_blocks) -> list:
     blocks = []
     for block in response_body_blocks:
-        print(type(block))
         block_schema = BlockSchema(**block)
 
         blocks.append(block_schema)
@@ -130,7 +129,11 @@ async def get_blocks_by_blockchain_id(
                 f'{url_base}/blockchain/blocks?blockchainId={blockchain_id}'
             )
 
-            return response
+            return Response(
+                content=response.content,
+                status_code=response.status_code,
+                headers={"Content-Type": "application/json"}
+            )
 
         except httpx.RequestError as e:
             raise HTTPException(
@@ -183,7 +186,7 @@ async def get_users() -> Response:
 @app.get('/user', status_code=HTTPStatus.OK)
 async def get_user(id: uuid.UUID):
     response: Response = await get_users()
-    blocks_users = json.loads(response.content.decode())
+    blocks_users = json.loads(response.body.decode())
 
     users: list[UserSchema] = await get_block_content(UserSchema, blocks_users)
 
